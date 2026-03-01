@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:sprint2_chilaqueen/ventana1.dart';
+import 'package:sprint2_chilaqueen/recovery.dart';
+import 'package:sprint2_chilaqueen/registro.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:sprint2_chilaqueen/ventana_user.dart';
 
 class Chilaqueen extends StatefulWidget {
   const Chilaqueen({super.key});
@@ -27,7 +29,7 @@ class _ChilaqueenState extends State<Chilaqueen> {
               Image.asset("assets/logo_2.png", width: 400),
               const SizedBox(height: 20),
               Text(
-                "Iniciar Sesión",
+                "INICIAR SESIÓN",
                 style: GoogleFonts.playfairDisplay(
                   fontSize: 30,
                   fontWeight: FontWeight.bold,
@@ -105,7 +107,7 @@ class _ChilaqueenState extends State<Chilaqueen> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => const Ventana1(),
+                                  builder: (context) => const MainU(),
                                 ),
                               );
                             },
@@ -125,7 +127,7 @@ class _ChilaqueenState extends State<Chilaqueen> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => const Ventana1(),
+                                  builder: (context) => const Registro(),
                                 ),
                               );
                             },
@@ -144,7 +146,14 @@ class _ChilaqueenState extends State<Chilaqueen> {
                 ),
               ),
               TextButton(
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const Password(),
+                    ),
+                  );
+                },
                 child: Text(
                   "¿OLVIDASTE TU CONTRASEÑA?",
                   style: GoogleFonts.poppins(
