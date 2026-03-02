@@ -107,9 +107,9 @@ class _MainEState extends State<MainE> {
       case 0:
         return gestionPedidos();
       case 1:
-        return const Center(child: Text("Panel de Métricas", style: TextStyle(color: Colors.white)));
+        return metricas();
       case 2:
-        return const Center(child: Text("Gestión de Usuarios", style: TextStyle(color: Colors.white)));
+        return gestionEmpleados();
       default:
         return gestionPedidos();
     }
@@ -200,6 +200,234 @@ class _MainEState extends State<MainE> {
                 ),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget metricas() {
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(15),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+
+            Text(
+              "Métricas",
+              style: GoogleFonts.playfairDisplay(
+                fontSize: 26,
+                fontWeight: FontWeight.bold,
+                color: colorFuente,
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                filtroBoton("Hoy"),
+                filtroBoton("Semana"),
+                filtroBoton("Mes"),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
+            metricaCard("Top Producto", "Chilaquiles Verdes"),
+            const SizedBox(height: 15),
+            metricaCard("Ventas", "\$600,000.00"),
+
+            const SizedBox(height: 25),
+
+            Text(
+              "Historial",
+              style: GoogleFonts.playfairDisplay(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: colorFuente,
+              ),
+            ),
+
+            const SizedBox(height: 15),
+
+            historialCard("#01", "Daniel", "Chilaquiles rojos", "10/01/2026"),
+            const SizedBox(height: 10),
+            historialCard("#02", "Kevin", "Chilaquiles verdes", "12/01/2026"),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget gestionEmpleados() {
+    return Padding(
+      padding: const EdgeInsets.all(15),
+      child: Column(
+        children: [
+
+          Text(
+            "Empleados",
+            style: GoogleFonts.playfairDisplay(
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+              color: colorFuente,
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          empleadoCard(
+            "Jorge Bayzoni",
+            "Administrador",
+            "3113436583",
+            "jorgebayzoni@ittepic.edu.mx",
+          ),
+
+          const SizedBox(height: 15),
+
+          empleadoCard(
+            "Daniel Barrera",
+            "Jefe",
+            "3112356543",
+            "danielbarrera@ittepic.edu.mx",
+          ),
+
+          const SizedBox(height: 15),
+
+          empleadoCard(
+            "Kevin Hernandez",
+            "Empleado",
+            "3112356543",
+            "kevinhernandez@ittepic.edu.mx",
+          ),
+
+          const Spacer(),
+
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {},
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black,
+                side: const BorderSide(color: colorFuente),
+              ),
+              child: const Text(
+                "CONTRATAR",
+                style: TextStyle(
+                  color: colorFuente,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget filtroBoton(String texto) {
+    return ElevatedButton(
+      onPressed: () {},
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.grey[800],
+      ),
+      child: Text(texto, style: const TextStyle(color: Colors.white)),
+    );
+  }
+
+  Widget metricaCard(String titulo, String valor) {
+    return Card(
+      color: colorPrincipal,
+      shape: RoundedRectangleBorder(
+        side: const BorderSide(color: colorFuente),
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: ListTile(
+        title: Text(
+          titulo,
+          style: const TextStyle(color: Colors.white70),
+        ),
+        subtitle: Text(
+          valor,
+          style: const TextStyle(
+            color: colorFuente,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget historialCard(String pedido, String nombre, String producto, String fecha) {
+    return Card(
+      color: colorPrincipal,
+      shape: RoundedRectangleBorder(
+        side: const BorderSide(color: colorFuente),
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: ListTile(
+        leading: const CircleAvatar(
+          backgroundColor: Colors.white,
+          child: Icon(Icons.person, color: Colors.black),
+        ),
+        title: Text(
+          "Pedido $pedido - $nombre",
+          style: const TextStyle(color: Colors.white),
+        ),
+        subtitle: Text(
+          producto,
+          style: const TextStyle(color: Colors.white70),
+        ),
+        trailing: Text(
+          fecha,
+          style: const TextStyle(color: colorFuente),
+        ),
+      ),
+    );
+  }
+
+  Widget empleadoCard(String nombre, String rol, String telefono, String correo) {
+    return Card(
+      color: colorPrincipal,
+      shape: RoundedRectangleBorder(
+        side: const BorderSide(color: colorFuente),
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Row(
+          children: [
+            const CircleAvatar(
+              radius: 30,
+              backgroundColor: Colors.white,
+              child: Icon(Icons.person, color: Colors.black),
+            ),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "NOMBRE: $nombre",
+                    style: const TextStyle(
+                      color: colorFuente,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text("ROL: $rol",
+                      style: const TextStyle(color: Colors.white)),
+                  Text(telefono,
+                      style: const TextStyle(color: Colors.white70)),
+                  Text(correo,
+                      style: const TextStyle(color: Colors.white70)),
+                ],
+              ),
+            ),
+            const Icon(Icons.cancel, color: Colors.red)
           ],
         ),
       ),
