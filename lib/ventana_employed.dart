@@ -31,7 +31,7 @@ class _MainEState extends State<MainE> {
       appBar: AppBar(
         backgroundColor: colorPrincipal,
         iconTheme: const IconThemeData(color: colorFuente),
-        title: Image.asset('assets/logo_2.png', height: 40),
+        title: Image.asset('assets/Logo_2.png', height: 40),
         centerTitle: true,
         elevation: 0,
         actions: [

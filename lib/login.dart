@@ -25,8 +25,10 @@ class _ChilaqueenState extends State<Chilaqueen> {
         child: Center(
           child: Column(
             children: [
-              const SizedBox(height: 20),
-              Image.asset("assets/logo_2.png", width: 400),
+              const SizedBox(height: 50),
+
+              Image.asset("assets/Logo_2.png", width: 400),
+
               const SizedBox(height: 20),
               Text(
                 "INICIAR SESIÓN",

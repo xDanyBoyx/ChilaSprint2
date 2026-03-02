@@ -22,7 +22,7 @@ class Password extends StatelessWidget {
           child: Column(
             children: [
               const SizedBox(height: 20),
-              Image.asset("assets/logo_2.png", width: 300),
+              Image.asset("assets/Logo_2.png", width: 300),
               const SizedBox(height: 30),
 
               Text(
@@ -42,7 +42,8 @@ class Password extends StatelessWidget {
                 child: Column(
                   children: [
                     Text(
-                      "Introduce tu correo electrónico para restablecer tu cuenta:",
+                      "Introduce tu correo electrónico. \n"
+                          "Enviaremos instrucciones para la \n recuperación de tu cuenta :) ",
                       textAlign: TextAlign.center,
                       style: GoogleFonts.poppins(
                         color: Colors.white70,
@@ -89,7 +90,7 @@ class Password extends StatelessWidget {
                           ),
                         ),
                         child: Text(
-                          "ENVIAR INSTRUCCIONES",
+                          "ENVIAR",
                           style: GoogleFonts.poppins(
                             color: Colors.black,
                             fontWeight: FontWeight.bold,
