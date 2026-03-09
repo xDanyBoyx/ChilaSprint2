@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "133690224329",
+    "project_id": "chilaqueen-d4d94",
+    "storage_bucket": "chilaqueen-d4d94.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:133690224329:android:553056edbad63ace37a718",
+        "android_client_info": {
+          "package_name": "com.example.sprint2_chilaqueen"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCzY-HhRz_PBcL1eBGa1ETJM611hjOlHuw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
