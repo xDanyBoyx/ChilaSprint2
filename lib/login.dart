@@ -147,20 +147,37 @@ class _ChilaqueenState extends State<Chilaqueen> {
                               setState(() => _estaCargando = false);
 
                               if (resultado["status"] == "exito") {
-                                // 3. Redirección por Rol
-                                if (resultado["puesto"] == "cliente") {
-                                  Navigator.pushReplacement(
-                                    context,
-                                    MaterialPageRoute(builder: (context) => const MainU()),
-                                  );
-                                } else {
-                                  Navigator.pushReplacement(
-                                    context,
-                                    MaterialPageRoute(builder: (context) => const MainE()),
-                                  );
+                                String puesto = resultado["puesto"] ??
+                                    "cliente";
+
+                                switch (puesto) {
+                                  case "cliente":
+                                    Navigator.pushReplacement(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) => const MainU()),
+                                    );
+                                    break;
+
+                                  case "empleado":
+                                    Navigator.pushReplacement(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) => const MainE()),
+                                    );
+                                    break;
+
+                                  case "admin":
+                                    Navigator.pushReplacement(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) => const MainE()),
+                                    );
+                                    break;
+
+                                  default:
+                                    _mostrarMensaje("Rol desconocido");
                                 }
-                              } else {
-                                _mostrarMensaje(resultado["status"]);
                               }
                             },
                             style: ElevatedButton.styleFrom(

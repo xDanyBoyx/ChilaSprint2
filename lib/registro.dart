@@ -84,23 +84,29 @@ class _RegistroState extends State<Registro> {
                             return;
                           }
 
-                          setState(() => _estaCargando = true);
+                          try {
 
-                          // Llamada a tu clase Autenticacion
-                          String? resultado = await _authService.registrarUsuario(
-                            email: _emailController.text,
-                            password: _passController.text,
-                            nombre: _nombreController.text,
-                            telefono: _celularController.text,
-                          );
+                            setState(() => _estaCargando = true);
 
-                          setState(() => _estaCargando = false);
+                            String? resultado = await _authService.registrarUsuario(
+                              email: _emailController.text,
+                              password: _passController.text,
+                              nombre: _nombreController.text,
+                              telefono: _celularController.text,
+                            );
 
-                          if (resultado == "exito") {
-                            _mostrarMensaje("¡Cuenta creada con éxito!", esError: false);
-                            Navigator.pop(context); // Regresa al login
-                          } else {
-                            _mostrarMensaje(resultado ?? "Error desconocido");
+                            setState(() => _estaCargando = false);
+
+                            if (resultado == "exito") {
+                              _mostrarMensaje("¡Cuenta creada con éxito!", esError: false);
+                              Navigator.pop(context);
+                            } else {
+                              _mostrarMensaje(resultado ?? "Error desconocido");
+                            }
+
+                          } catch (e) {
+                            setState(() => _estaCargando = false);
+                            _mostrarMensaje("Error al registrar usuario");
                           }
                         },
                         style: ElevatedButton.styleFrom(

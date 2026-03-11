@@ -56,24 +56,39 @@ class Autenticacion {
   // 2. LOGIN + VERIFICAR ROL
   Future<Map<String, dynamic>> iniciarSesion(String email, String password) async {
     try {
+
       UserCredential userCredential = await _auth.signInWithEmailAndPassword(
         email: email.trim(),
         password: password.trim(),
       );
 
-      // Consultar el puesto en Firestore
-      DocumentSnapshot userDoc = await _firestore
-          .collection('usuarios')
-          .doc(userCredential.user!.uid)
-          .get();
+      String puesto = "cliente";
 
-      if (userDoc.exists) {
-        return {"status": "exito", "puesto": userDoc.get('puesto')};
+      try {
+
+        DocumentSnapshot userDoc = await _firestore
+            .collection('usuarios')
+            .doc(userCredential.user!.uid)
+            .get();
+
+        if (userDoc.exists) {
+          Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
+          puesto = data["puesto"] ?? "cliente";
+        }
+
+      } catch (e) {
+        print("Error leyendo Firestore: $e");
       }
-      return {"status": "Error: Datos de usuario no encontrados"};
+
+      return {
+        "status": "exito",
+        "puesto": puesto
+      };
 
     } on FirebaseAuthException catch (e) {
       return {"status": _manejarErrorFirebase(e.code)};
+    } catch (e) {
+      return {"status": "Error inesperado"};
     }
   }
 
