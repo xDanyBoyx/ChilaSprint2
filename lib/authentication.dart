@@ -9,7 +9,6 @@ class Autenticacion {
 
   String? validarCorreo(String email) {
     if (email.isEmpty) return "El correo es obligatorio";
-    // Expresión regular para validar formato de email
     final bool emailValid = RegExp(r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+")
         .hasMatch(email);
     if (!emailValid) return "Formato de correo inválido";
@@ -38,13 +37,14 @@ class Autenticacion {
         password: password.trim(),
       );
 
-      // Guardar datos adicionales en Firestore (Modelo de datos que diseñamos)
+      // Guardar datos adicionales en Firestore
       await _firestore.collection('usuarios').doc(userCredential.user!.uid).set({
-        'nombre': nombre,
-        'telefono': telefono,
+        'nombre': nombre.trim(),
+        'telefono': telefono.trim(),
         'correo': email.trim(),
         'puesto': 'cliente', // Por defecto es cliente
-        'fecha_registro': DateTime.now(),
+        'fecha_registro': FieldValue.serverTimestamp(), // ¡Toma la hora exacta del servidor!
+        'imagen_perfil': '', // El nuevo campo que agregaste preparado para usarse
       });
 
       return "exito";
@@ -56,16 +56,16 @@ class Autenticacion {
   // 2. LOGIN + VERIFICAR ROL
   Future<Map<String, dynamic>> iniciarSesion(String email, String password) async {
     try {
-
+      // Intentamos iniciar sesión
       UserCredential userCredential = await _auth.signInWithEmailAndPassword(
         email: email.trim(),
         password: password.trim(),
       );
 
-      String puesto = "cliente";
+      String puesto = "cliente"; // Semáforo por defecto
 
       try {
-
+        // Vamos a Firestore a leer qué tipo de usuario es
         DocumentSnapshot userDoc = await _firestore
             .collection('usuarios')
             .doc(userCredential.user!.uid)
@@ -75,11 +75,11 @@ class Autenticacion {
           Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
           puesto = data["puesto"] ?? "cliente";
         }
-
       } catch (e) {
-        print("Error leyendo Firestore: $e");
+        print("Error leyendo el rol en Firestore: $e");
       }
 
+      // Regresamos el éxito y a dónde lo debe mandar la pantalla
       return {
         "status": "exito",
         "puesto": puesto
@@ -88,7 +88,7 @@ class Autenticacion {
     } on FirebaseAuthException catch (e) {
       return {"status": _manejarErrorFirebase(e.code)};
     } catch (e) {
-      return {"status": "Error inesperado"};
+      return {"status": "Error inesperado al iniciar sesión."};
     }
   }
 
@@ -97,10 +97,11 @@ class Autenticacion {
     switch (code) {
       case 'weak-password': return "La contraseña es muy débil.";
       case 'email-already-in-use': return "Este correo ya está registrado.";
-      case 'user-not-found': return "Usuario no encontrado.";
-      case 'wrong-password': return "Contraseña incorrecta.";
+      case 'invalid-credential': return "Correo o contraseña incorrectos."; // ¡El nuevo error de seguridad de Firebase!
+      case 'user-not-found': return "Usuario no encontrado."; // Por si usas una versión viejita
+      case 'wrong-password': return "Contraseña incorrecta."; // Por si usas una versión viejita
       case 'invalid-email': return "Correo inválido.";
-      default: return "Ocurrió un error. Intenta de nuevo.";
+      default: return "Ocurrió un error. Intenta de nuevo. ($code)";
     }
   }
 }

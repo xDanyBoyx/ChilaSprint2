@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:sprint2_chilaqueen/login.dart';
+import 'package:sprint2_chilaqueen/perfil_screen.dart';
+import 'package:sprint2_chilaqueen/configuracion_screen.dart';
 
 class MainU extends StatefulWidget {
   const MainU({super.key});
@@ -9,11 +13,19 @@ class MainU extends StatefulWidget {
   State<MainU> createState() => _MainUState();
 }
 
+// Paleta de colores de la marca
 const Color colorPrincipal = Color(0xFF1A1A1A);
 const Color colorFuente = Color(0xFFD4AF37);
+const Color colorTarjeta = Color(0xFF252525);
+const Color colorInput = Color(0xFF333333);
+const Color colorGrisTexto = Color(0xFFAAAAAA);
 
 class _MainUState extends State<MainU> {
+  // --- Variables de Estado ---
   int _indice = 0;
+  String _busqueda = "";
+  String _categoriaSeleccionada = "🔥 Populares";
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   @override
   Widget build(BuildContext context) {
@@ -25,457 +37,338 @@ class _MainUState extends State<MainU> {
         title: Image.asset('assets/Logo_2.png', height: 40),
         centerTitle: true,
         elevation: 0,
+        scrolledUnderElevation: 0,
       ),
-      drawer: Drawer(
-        backgroundColor: colorPrincipal,
-        child: Column(
-          children: [
-            DrawerHeader(
-              decoration: const BoxDecoration(color: Colors.black),
-              child: Center(
-                child: Column(
-                  children: [
-                    const CircleAvatar(
-                      radius: 40,
-                      backgroundColor: colorFuente,
-                      child: CircleAvatar(
-                        radius: 38,
-                        backgroundImage: AssetImage('assets/user.png'),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text("BIENVENIDO", style: GoogleFonts.poppins(color: colorFuente, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.settings, color: colorFuente),
-              title: Text("Configuración", style: GoogleFonts.poppins(color: Colors.white)),
-              onTap: () {},
-            ),
-            const Divider(color: colorFuente, thickness: 0.1),
-            ListTile(
-              leading: const Icon(Icons.logout, color: colorFuente),
-              title: Text("Cerrar Sesión", style: GoogleFonts.poppins(color: Colors.white)),
-              onTap: () {
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (context) => const Chilaqueen()),
-                      (route) => false,
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-      body: contenido(),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _indice,
-        onTap: (pos) => setState(() => _indice = pos),
-        backgroundColor: Colors.black,
-        selectedItemColor: colorFuente,
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.restaurant_menu), label: "MENÚ"),
-          BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: "CARRITO"),
-          BottomNavigationBarItem(icon: Icon(Icons.assignment), label: "PEDIDOS"),
-        ],
-      ),
+      drawer: _crearDrawer(),
+      body: _cambiarContenido(),
+      bottomNavigationBar: _crearBottomNav(),
     );
   }
 
-  Widget contenido() {
+  // Lógica para cambiar entre pestañas
+  Widget _cambiarContenido() {
     switch (_indice) {
-      case 0:
-        return menuPrincipal();
-      case 1:
-        return carritoCompras();
-      case 2:
-        return pedidosView();
-      default:
-        return menuPrincipal();
+      case 0: return menuPrincipal();
+      case 1: return favoritosView();
+      case 2: return carritoCompras();
+      case 3: return pedidosView();
+      default: return menuPrincipal();
     }
   }
 
+  // ==================== VISTA: MENÚ PRINCIPAL ====================
   Widget menuPrincipal() {
     return ListView(
-      padding: const EdgeInsets.all(15),
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
       children: [
-        // Título estilo Mockup
-        Center(
-          child: Text(
-            "NUESTRO\nMENÚ",
-            textAlign: TextAlign.center,
-            style: GoogleFonts.playfairDisplay(
-              color: colorFuente,
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 2,
-            ),
-          ),
+        // Entrega
+        _seccionUbicacion(),
+        const SizedBox(height: 25),
+
+        Text(
+          "¿Qué se te antoja hoy?",
+          style: GoogleFonts.playfairDisplay(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 20),
 
-        // Buscador
+        // Barra de Búsqueda
         TextField(
+          onChanged: (valor) => setState(() => _busqueda = valor.toLowerCase()),
           style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
             hintText: "Buscar platillo...",
-            hintStyle: const TextStyle(color: Colors.grey),
+            hintStyle: TextStyle(color: colorGrisTexto),
             prefixIcon: const Icon(Icons.search, color: colorFuente),
             filled: true,
-            fillColor: Colors.black,
-            enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(30),
-                borderSide: const BorderSide(color: colorFuente, width: 1.5)
-            ),
-            focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(30),
-                borderSide: const BorderSide(color: colorFuente, width: 2)
-            ),
+            fillColor: colorInput,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
           ),
-        ),
-        const SizedBox(height: 20),
-
-        // Tags/Categorías
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _buildTag("Chilaquiles"),
-            _buildTag("Tortas"),
-            _buildTag("Especiales"),
-          ],
         ),
         const SizedBox(height: 25),
 
-        // Items del Menú rediseñados
-        _itemMenu("Chilaquiles Tradicionales", "Salsa roja o verde, pollo, crema y queso.", "85.00", "assets/chilaquiles.jpg"),
-        _itemMenu("Torta de Chilaquil", "Bolillo crujiente relleno de sabor.", "65.00", "assets/torta.jpg"),
-        _itemMenu("ChilaQueen Especial", "Receta secreta de la casa con extra de todo.", "110.00", "assets/especiales.jpg"),
-      ],
-    );
-  }
-
-  Widget carritoCompras() {
-    return Column(
-      children: [
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.all(15),
+        // Filtros de Categoría
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          child: Row(
             children: [
-              Center(
-                child: Text(
-                  "CARRITO\nDE COMPRAS",
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.playfairDisplay(
-                    color: colorFuente,
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Productos en el carrito
-              _itemCarrito("Chilaquiles Rojos Naturales", "Salsa de tomate y chiles secos, con crema, queso y cebolla.", "75.00", "assets/chilarojos.jpg"),
-              _itemCarrito("Chilaquiles Verdes con pollo", "Salsa de tomate y chiles verdes, con crema, queso, cebolla y pollo.", "75.00", "assets/chilaverdes.jpg"),
-
-              const SizedBox(height: 10),
-
-              // Selectores de Método de Entrega y Pago
-              Row(
-                children: [
-                  Expanded(child: _selectorOpciones("MÉTODO DE ENTREGA", ["Recoger", "Domicilio"])),
-                  const SizedBox(width: 10),
-                  Expanded(child: _selectorOpciones("MÉTODO DE PAGO", ["Efectivo", "Tarjeta"])),
-                ],
-              ),
+              _buildTag("🔥 Populares"),
+              const SizedBox(width: 10),
+              _buildTag("Chilaquiles"),
+              const SizedBox(width: 10),
+              _buildTag("Tortas"),
+              const SizedBox(width: 10),
+              _buildTag("Bebidas"),
             ],
           ),
         ),
+        const SizedBox(height: 25),
 
-        // Sección de Total y Botón (Fijo abajo)
-        _seccionTotal(),
+        Text("Platillos", style: GoogleFonts.poppins(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 15),
+
+        // --- LISTA DINÁMICA DE FIREBASE ---
+        StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance.collection('productos').snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator(color: colorFuente));
+            }
+            if (snapshot.hasError) {
+              return const Center(child: Text("Error al cargar productos", style: TextStyle(color: Colors.white)));
+            }
+
+            // Filtrado local para búsqueda y categoría
+            var platillos = snapshot.data!.docs.where((doc) {
+              var data = doc.data() as Map<String, dynamic>;
+              String nombre = (data['nombre'] ?? "").toString().toLowerCase();
+              String cat = data['categoria'] ?? "";
+
+              bool coincideBusqueda = nombre.contains(_busqueda);
+              bool coincideCategoria = _categoriaSeleccionada == "🔥 Populares" || cat == _categoriaSeleccionada;
+
+              return coincideBusqueda && coincideCategoria;
+            }).toList();
+
+            if (platillos.isEmpty) {
+              return Center(child: Padding(
+                padding: const EdgeInsets.all(40.0),
+                child: Text("No encontramos lo que buscas 🌶️", style: TextStyle(color: colorGrisTexto)),
+              ));
+            }
+
+            return ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: platillos.length,
+              itemBuilder: (context, index) {
+                var d = platillos[index].data() as Map<String, dynamic>;
+                return _itemMenu(
+                    d['nombre'] ?? 'Platillo',
+                    d['descripcion'] ?? '',
+                    (d['precio_base'] ?? d['precio'] ?? '0').toString(), // Soporta ambos nombres de campo
+                    d['imagen_url'] ?? '',
+                    false // Por ahora favorito en false
+                );
+              },
+            );
+          },
+        ),
       ],
     );
   }
 
-  Widget pedidosView() {
-    return ListView(
-      padding: const EdgeInsets.all(15),
-      children: [
-        Center(
-          child: Text(
-            "Mis pedidos",
-            style: GoogleFonts.playfairDisplay(
-              color: colorFuente,
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-        const SizedBox(height: 20),
+  // ==================== WIDGETS DE APOYO ====================
 
-        // Lista de pedidos basados en tu mockup
-        _itemPedido(
-            "Pedido #01",
-            "Chilaquiles Rojos Naturales",
-            "75.00",
-            "assets/chilarojos.jpg",
-            "en camino / 5 minutos restantes.",
-            Colors.blueAccent
-        ),
-        _itemPedido(
-            "Pedido #02",
-            "Chilaquiles Verdes con pollo",
-            "75.00",
-            "assets/chilaverdes.jpg",
-            "Entregado.",
-            Colors.green
-        ),
-        _itemPedido(
-            "Pedido #03",
-            "Chilaquiles Verdes con pollo",
-            "75.00",
-            "assets/chilaverdes.jpg",
-            "En preparación.",
-            Colors.redAccent
-        ),
-      ],
-    );
-  }
-
-  Widget _itemPedido(String nroPedido, String nombre, String precio, String rutaImagen, String estado, Color colorEstado) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 15),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.black,
-        border: Border.all(color: colorFuente, width: 2),
-        borderRadius: BorderRadius.circular(15),
-      ),
+  Widget _seccionUbicacion() {
+    return InkWell(
+      onTap: () {},
       child: Row(
         children: [
-          // Imagen circular del platillo
-          ClipRRect(
-            borderRadius: BorderRadius.circular(50),
-            child: Image.asset(rutaImagen, width: 85, height: 85, fit: BoxFit.cover),
-          ),
-          const SizedBox(width: 15),
-
-          // Información del pedido
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(nroPedido, style: GoogleFonts.playfairDisplay(color: colorFuente, fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 2),
-                Text(nombre, style: GoogleFonts.poppins(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
-                const SizedBox(height: 4),
-                Text("\$$precio MXN", style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-
-                // Estado del pedido con color dinámico
-                RichText(
-                  text: TextSpan(
-                    style: GoogleFonts.poppins(fontSize: 12),
-                    children: [
-                      const TextSpan(text: "Estado: ", style: TextStyle(color: colorFuente)),
-                      TextSpan(text: estado, style: TextStyle(color: colorEstado)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Botón circular de "X" (Cerrar/Eliminar)
           Container(
-            padding: const EdgeInsets.all(4),
-            decoration: const BoxDecoration(
-              color: colorFuente,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.close, color: Colors.black, size: 20),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _itemCarrito(String nombre, String desc, String precio, String rutaImagen) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 15),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        border: Border.all(color: colorFuente, width: 2),
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(50), // Imagen circular como en el mockup
-            child: Image.asset(rutaImagen, width: 90, height: 90, fit: BoxFit.cover),
+            padding: const EdgeInsets.all(8),
+            decoration: const BoxDecoration(color: colorTarjeta, shape: BoxShape.circle),
+            child: const Icon(Icons.location_on, color: colorFuente, size: 20),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(nombre, style: GoogleFonts.playfairDisplay(color: colorFuente, fontSize: 16, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                Text(desc, style: GoogleFonts.poppins(color: Colors.white, fontSize: 11)),
-                const SizedBox(height: 8),
-                Text("\$$precio MXN", style: GoogleFonts.poppins(color: colorFuente, fontWeight: FontWeight.bold, fontSize: 18)),
+                Text("Entregar en", style: GoogleFonts.poppins(color: colorGrisTexto, fontSize: 12)),
+                Text("Av. de la Cultura 123, Tepic", style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14), overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
-          const Icon(Icons.delete_outline, color: colorFuente, size: 30),
-        ],
-      ),
-    );
-  }
-
-  Widget _selectorOpciones(String titulo, List<String> opciones) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        border: Border.all(color: colorFuente, width: 2),
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(titulo, style: GoogleFonts.poppins(color: colorFuente, fontSize: 12, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 5),
-          ...opciones.map((opt) => Row(
-            children: [
-              Icon(Icons.radio_button_off, color: Colors.white, size: 18),
-              const SizedBox(width: 5),
-              Text(opt, style: GoogleFonts.poppins(color: Colors.white, fontSize: 14)),
-            ],
-          )).toList(),
-        ],
-      ),
-    );
-  }
-
-  Widget _seccionTotal() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: colorFuente, width: 0.5)),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text("SUBTOTAL: \$150", style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text("TOTAL: \$150", style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-            ],
-          ),
-          const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              onPressed: () {},
-              style: ElevatedButton.styleFrom(
-                backgroundColor: colorFuente,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
-              ),
-              child: const Text("REALIZAR COMPRA", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-            ),
-          ),
+          const Icon(Icons.keyboard_arrow_down, color: colorGrisTexto),
         ],
       ),
     );
   }
 
   Widget _buildTag(String texto) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.black,
-        border: Border.all(color: colorFuente),
-        borderRadius: BorderRadius.circular(20),
+    bool isSelected = _categoriaSeleccionada == texto;
+    return InkWell(
+      onTap: () => setState(() => _categoriaSeleccionada = texto),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        decoration: BoxDecoration(color: isSelected ? colorFuente : colorTarjeta, borderRadius: BorderRadius.circular(20)),
+        child: Text(texto, style: GoogleFonts.poppins(color: isSelected ? colorPrincipal : Colors.white, fontSize: 13, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
       ),
-      child: Text(texto, style: GoogleFonts.poppins(color: colorFuente, fontSize: 12)),
     );
   }
 
-  Widget _itemMenu(String nombre, String desc, String precio, String rutaImagen) {
+  Widget _itemMenu(String nombre, String desc, String precio, String url, bool isFavorite) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 18),
+      margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.black,
-        border: Border.all(color: colorFuente, width: 2), // Borde grueso como el mockup
-        borderRadius: BorderRadius.circular(15),
-      ),
+      decoration: BoxDecoration(color: colorTarjeta, borderRadius: BorderRadius.circular(20)),
       child: Row(
         children: [
-          // Imagen Circular
           ClipRRect(
-            borderRadius: BorderRadius.circular(50),
-            child: Image.asset(
-              rutaImagen,
-              width: 85,
-              height: 85,
-              fit: BoxFit.cover,
-              // Fallback por si la imagen no carga
-              errorBuilder: (context, error, stackTrace) =>
-                  Container(color: Colors.grey[900], width: 85, height: 85, child: Icon(Icons.fastfood, color: colorFuente)),
-            ),
+            borderRadius: BorderRadius.circular(15),
+            child: url.startsWith('http')
+                ? Image.network(url, width: 90, height: 90, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _errorImagen())
+                : _errorImagen(),
           ),
           const SizedBox(width: 15),
-
-          // Textos
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                    nombre,
-                    style: GoogleFonts.playfairDisplay(
-                        color: colorFuente,
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold
-                    )
-                ),
-                const SizedBox(height: 4),
-                Text(
-                    desc,
-                    style: GoogleFonts.poppins(color: Colors.white, fontSize: 11)
-                ),
+                Text(nombre, style: GoogleFonts.poppins(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+                Text(desc, maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(color: colorGrisTexto, fontSize: 11)),
                 const SizedBox(height: 8),
-                Text(
-                    "\$$precio MXN",
-                    style: GoogleFonts.poppins(
-                        color: colorFuente,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18
-                    )
-                ),
+                Text("\$$precio MXN", style: GoogleFonts.poppins(color: colorFuente, fontWeight: FontWeight.bold, fontSize: 16)),
               ],
             ),
           ),
-
-          // Botón de agregar
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.add_circle_outline, color: colorFuente, size: 30),
+          Column(
+            children: [
+              IconButton(onPressed: () {}, icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border, color: colorFuente, size: 22)),
+              IconButton(
+                onPressed: () => _mostrarOpcionesPlatillo(context, nombre, precio, url),
+                style: IconButton.styleFrom(backgroundColor: colorPrincipal),
+                icon: const Icon(Icons.add, color: colorFuente, size: 20),
+              ),
+            ],
           ),
         ],
       ),
+    );
+  }
+
+  Widget _errorImagen() => Container(color: colorInput, width: 90, height: 90, child: const Icon(Icons.fastfood, color: colorGrisTexto));
+
+  // ==================== DRAWER Y NAV ====================
+
+  Widget _crearDrawer() {
+    String nombreUser = _auth.currentUser?.displayName ?? "Usuario ChilaQueen";
+    return Drawer(
+      backgroundColor: colorPrincipal,
+      child: Column(
+        children: [
+          DrawerHeader(
+            decoration: const BoxDecoration(color: colorTarjeta),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const CircleAvatar(radius: 35, backgroundColor: colorFuente, child: Icon(Icons.person, size: 40, color: colorPrincipal)),
+                  const SizedBox(height: 10),
+                  Text(nombreUser.toUpperCase(), style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                ],
+              ),
+            ),
+          ),
+          _itemDrawer(Icons.person_outline, "Mi Perfil", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PerfilScreen()))),
+          _itemDrawer(Icons.location_on_outlined, "Mis Direcciones", () {}),
+          _itemDrawer(Icons.settings_outlined, "Configuración", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ConfiguracionScreen()))),
+          const Spacer(),
+          const Divider(color: colorInput),
+          ListTile(
+            leading: const Icon(Icons.logout, color: Colors.redAccent),
+            title: const Text("Cerrar Sesión", style: TextStyle(color: Colors.redAccent)),
+            onTap: () async {
+              await _auth.signOut();
+              Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const Chilaqueen()), (r) => false);
+            },
+          ),
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  Widget _itemDrawer(IconData ico, String tit, VoidCallback tap) => ListTile(leading: Icon(ico, color: colorFuente), title: Text(tit, style: const TextStyle(color: Colors.white)), onTap: tap);
+
+  Widget _crearBottomNav() {
+    return BottomNavigationBar(
+      currentIndex: _indice,
+      onTap: (pos) => setState(() => _indice = pos),
+      backgroundColor: colorTarjeta,
+      selectedItemColor: colorFuente,
+      unselectedItemColor: colorGrisTexto,
+      type: BottomNavigationBarType.fixed,
+      items: const [
+        BottomNavigationBarItem(icon: Icon(Icons.restaurant_menu), label: "Menú"),
+        BottomNavigationBarItem(icon: Icon(Icons.favorite_border), label: "Favoritos"),
+        BottomNavigationBarItem(icon: Icon(Icons.shopping_cart_outlined), label: "Carrito"),
+        BottomNavigationBarItem(icon: Icon(Icons.receipt_long_outlined), label: "Pedidos"),
+      ],
+    );
+  }
+
+  // ==================== VISTAS RESTANTES (SKETCH) ====================
+
+  Widget favoritosView() => Center(child: Text("Tus Favoritos", style: TextStyle(color: Colors.white)));
+  Widget carritoCompras() => Center(child: Text("Carrito de Compras", style: TextStyle(color: Colors.white)));
+  Widget pedidosView() => Center(child: Text("Tus Pedidos", style: TextStyle(color: Colors.white)));
+
+  // ==================== MODAL DE PERSONALIZACIÓN ====================
+
+  void _mostrarOpcionesPlatillo(BuildContext context, String nombre, String precio, String imagen) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        bool extraPollo = false;
+        bool extraHuevo = false;
+        return StatefulBuilder(builder: (context, setModalState) {
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.75,
+            decoration: const BoxDecoration(color: colorTarjeta, borderRadius: BorderRadius.vertical(top: Radius.circular(30))),
+            child: Column(
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+                  child: imagen.startsWith('http')
+                      ? Image.network(imagen, height: 180, width: double.infinity, fit: BoxFit.cover)
+                      : Container(height: 180, color: colorInput),
+                ),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.all(20),
+                    children: [
+                      Text(nombre, style: GoogleFonts.playfairDisplay(color: colorFuente, fontSize: 24, fontWeight: FontWeight.bold)),
+                      Text("\$$precio MXN", style: const TextStyle(color: Colors.white, fontSize: 18)),
+                      const Divider(color: colorInput, height: 40),
+                      Text("Personaliza tu orden", style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
+                      CheckboxListTile(
+                        title: const Text("Extra Pollo (+\$25)", style: TextStyle(color: Colors.white)),
+                        value: extraPollo,
+                        activeColor: colorFuente,
+                        onChanged: (v) => setModalState(() => extraPollo = v!),
+                      ),
+                      CheckboxListTile(
+                        title: const Text("Extra Huevo (+\$15)", style: TextStyle(color: Colors.white)),
+                        value: extraHuevo,
+                        activeColor: colorFuente,
+                        onChanged: (v) => setModalState(() => extraHuevo = v!),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: ElevatedButton.styleFrom(backgroundColor: colorFuente),
+                      child: const Text("Agregar al Carrito", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                )
+              ],
+            ),
+          );
+        });
+      },
     );
   }
 }
