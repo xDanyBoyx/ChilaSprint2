@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'firebase_options.dart';
+import 'analytics_service.dart';
 import 'login.dart';
 import 'ventana_user.dart';
 import 'ventana_employed.dart';
@@ -30,6 +31,10 @@ void main() async {
     }
   }
 
-  runApp(MaterialApp(home: home, debugShowCheckedModeBanner: false));
+  runApp(MaterialApp(
+    home: home,
+    debugShowCheckedModeBanner: false,
+    navigatorObservers: [AnalyticsService.observer],
+  ));
 }
 

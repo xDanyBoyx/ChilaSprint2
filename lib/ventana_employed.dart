@@ -1,8 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:http/http.dart' as http;
 import 'package:sprint2_chilaqueen/login.dart';
+import 'analytics_service.dart';
 
 class MainE extends StatefulWidget {
   const MainE({super.key});
@@ -251,7 +254,10 @@ class _MainEState extends State<MainE> {
                       Switch(
                         value: sucursalAbierta,
                         onChanged: _miPuesto == 'admin'
-                            ? (valor) => docRef.set({'abierta': valor}, SetOptions(merge: true))
+                            ? (valor) {
+                                docRef.set({'abierta': valor}, SetOptions(merge: true));
+                                AnalyticsService.logSucursalToggle(valor);
+                              }
                             : null,
                         activeThumbColor: colorPrincipal,
                         activeTrackColor: colorVerdeExito,
@@ -301,6 +307,11 @@ class _MainEState extends State<MainE> {
             ),
 
             const SizedBox(height: 30),
+            Text("CLIMA ACTUAL", style: GoogleFonts.poppins(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1)),
+            const SizedBox(height: 12),
+            _tarjetaClima(),
+
+            const SizedBox(height: 30),
             Text("INFORMACIÓN", style: GoogleFonts.poppins(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1)),
             const SizedBox(height: 12),
             Container(
@@ -323,6 +334,90 @@ class _MainEState extends State<MainE> {
   }
 
   Widget _filaInfoSucursal(IconData icono, String titulo, String valor) { return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Icon(icono, color: colorFuente, size: 20), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(titulo, style: GoogleFonts.poppins(color: colorGrisTexto, fontSize: 12)), Text(valor, style: GoogleFonts.poppins(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500))]))]); }
+
+  // ==================== CLIMA (Open-Meteo REST API) ====================
+  Future<Map<String, dynamic>> _fetchClima() async {
+    final uri = Uri.parse(
+      'https://api.open-meteo.com/v1/forecast'
+      '?latitude=19.4326&longitude=-99.1332&current_weather=true',
+    );
+    final response = await http.get(uri);
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      return data['current_weather'] as Map<String, dynamic>;
+    }
+    throw Exception('Error ${response.statusCode}');
+  }
+
+  Map<String, String> _infoClima(int code) {
+    if (code == 0)  return {'emoji': '☀️',  'desc': 'Despejado',            'nota': 'Clima ideal, pedidos normales esperados.'};
+    if (code <= 3)  return {'emoji': '🌤️',  'desc': 'Parcialmente nublado', 'nota': 'Clima favorable para entregas.'};
+    if (code <= 48) return {'emoji': '🌫️',  'desc': 'Niebla',               'nota': 'Visibilidad reducida en entregas.'};
+    if (code <= 67) return {'emoji': '🌧️',  'desc': 'Lluvia',               'nota': 'Alta demanda de delivery esperada.'};
+    if (code <= 77) return {'emoji': '🌨️',  'desc': 'Nieve',                'nota': 'Considera cerrar temporalmente.'};
+    if (code <= 82) return {'emoji': '🌦️',  'desc': 'Chubascos',            'nota': 'Posible aumento en pedidos.'};
+    return             {'emoji': '⛈️',  'desc': 'Tormenta',             'nota': 'Considera cerrar temporalmente.'};
+  }
+
+  Widget _tarjetaClima() {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _fetchClima(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(color: colorTarjeta, borderRadius: BorderRadius.circular(16)),
+            child: const Center(child: SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: colorFuente, strokeWidth: 2))),
+          );
+        }
+        if (snapshot.hasError || !snapshot.hasData) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(color: colorTarjeta, borderRadius: BorderRadius.circular(16)),
+            child: Row(children: [
+              const Icon(Icons.wifi_off, color: colorGrisTexto, size: 20),
+              const SizedBox(width: 12),
+              Text("Sin datos de clima disponibles", style: GoogleFonts.poppins(color: colorGrisTexto, fontSize: 13)),
+            ]),
+          );
+        }
+
+        final clima = snapshot.data!;
+        final temp = (clima['temperature'] as num).toDouble();
+        final code = (clima['weathercode'] as num).toInt();
+        final info = _infoClima(code);
+
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(color: colorTarjeta, borderRadius: BorderRadius.circular(16)),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: colorFuente.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+                child: Text(info['emoji']!, style: const TextStyle(fontSize: 28)),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [
+                      Text('${temp.toStringAsFixed(1)}°C', style: GoogleFonts.poppins(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                      const SizedBox(width: 8),
+                      Text(info['desc']!, style: GoogleFonts.poppins(color: colorGrisTexto, fontSize: 13)),
+                    ]),
+                    const SizedBox(height: 4),
+                    Text(info['nota']!, style: GoogleFonts.poppins(color: colorFuente, fontSize: 11)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   // ==================== RESTO DEL CÓDIGO (FINANZAS, TICKETS, STOCK) ====================
   Widget _moduloFinanzas() {
@@ -738,7 +833,10 @@ class _MainEState extends State<MainE> {
                           style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
                           items: estadosPedido.map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(),
                           onChanged: (newValue) {
-                            if (newValue != null) docRef.update({'estadoActual': newValue});
+                            if (newValue != null) {
+                              docRef.update({'estadoActual': newValue});
+                              AnalyticsService.logPedidoActualizado(newValue);
+                            }
                           },
                         ),
                       ),
@@ -1278,6 +1376,7 @@ class _MainEState extends State<MainE> {
                     'descripcion': descCtrl.text.trim(),
                     'disponible': true,
                   });
+                  AnalyticsService.logProductoAgregado(categoriaSeleccionada);
                   if (context.mounted) Navigator.pop(context);
                 } catch (e) {
                   setDialogState(() { guardando = false; errorMsg = "Error al guardar. Verifica permisos."; });
@@ -1536,6 +1635,7 @@ class _MainEState extends State<MainE> {
                   }
 
                   await query.docs.first.reference.update({'puesto': rolSeleccionado});
+                  AnalyticsService.logEmpleadoContratado(rolSeleccionado);
                   if (context.mounted) {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
