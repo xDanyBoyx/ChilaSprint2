@@ -25,7 +25,7 @@ class Autenticacion {
 
   // 1. REGISTRO + GUARDAR EN FIRESTORE
   Future<String?> registrarUsuario({
-    required String email,
+  required String email,
     required String password,
     required String nombre,
     required String telefono,
