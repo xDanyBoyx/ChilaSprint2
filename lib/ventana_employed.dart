@@ -159,10 +159,17 @@ class _MainEState extends State<MainE> {
             ),
             title: Text("Cerrar Sesión", style: GoogleFonts.poppins(color: colorRojoAlerta, fontWeight: FontWeight.w600, fontSize: 15)),
             onTap: () async {
-              await FirebaseAuth.instance.signOut();
-              if (mounted) {
-                Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => const Chilaqueen()), (route) => false);
-              }
+              // Cerramos el drawer si está abierto
+              final nav = Navigator.of(context, rootNavigator: true);
+              if (Navigator.canPop(context)) Navigator.pop(context);
+              try {
+                await FirebaseAuth.instance.signOut();
+              } catch (_) {}
+              if (!mounted) return;
+              nav.pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const Chilaqueen()),
+                (route) => false,
+              );
             },
           ),
 
@@ -655,6 +662,8 @@ class _MainEState extends State<MainE> {
           notas: List<String>.from(data['notas'] ?? []),
           estadoActual: data['estadoActual'] ?? 'Nuevo',
           tiempoEstimado: data['tiempoEstimado'] ?? 'Sin asignar',
+          metodoPago: data['metodo_pago'] is Map ? Map<String, dynamic>.from(data['metodo_pago']) : null,
+          direccion: data['direccion_entrega'] is Map ? Map<String, dynamic>.from(data['direccion_entrega']) : null,
         );
       },
     );
@@ -670,6 +679,8 @@ class _MainEState extends State<MainE> {
     required List<String> notas,
     required String estadoActual,
     required String tiempoEstimado,
+    Map<String, dynamic>? metodoPago,
+    Map<String, dynamic>? direccion,
   }) {
     final docRef = FirebaseFirestore.instance.collection('pedidos').doc(docId);
     String valorDropdown = estadosPedido.contains(estadoActual) ? estadoActual : estadosPedido.first;
@@ -722,6 +733,31 @@ class _MainEState extends State<MainE> {
                     child: Text(nota, style: GoogleFonts.poppins(color: colorNota, fontSize: 13, fontWeight: FontWeight.w500)),
                   );
                 }),
+                if (metodoPago != null || direccion != null) const SizedBox(height: 12),
+                if (metodoPago != null)
+                  Row(children: [
+                    Icon(
+                      metodoPago['tipo'] == 'efectivo' ? Icons.payments_outlined : Icons.credit_card,
+                      color: metodoPago['tipo'] == 'efectivo' ? colorVerdeExito : colorFuente,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 8),
+                    Text("Pago: ${metodoPago['etiqueta'] ?? '—'}",
+                        style: GoogleFonts.poppins(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500)),
+                  ]),
+                if (direccion != null && (direccion['calle'] ?? '').toString().isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Icon(Icons.location_on_outlined, color: colorFuente, size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        "${direccion['calle']} ${direccion['num_ext'] ?? ''}, ${direccion['colonia'] ?? ''}${(direccion['referencias'] ?? '').toString().isNotEmpty ? ' • ${direccion['referencias']}' : ''}",
+                        style: GoogleFonts.poppins(color: colorGrisTexto, fontSize: 11),
+                      ),
+                    ),
+                  ]),
+                ],
                 const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(color: colorInput, height: 1)),
                 Row(children: [
                   Expanded(
@@ -975,8 +1011,31 @@ class _MainEState extends State<MainE> {
               const SizedBox(height: 14),
             ],
 
+            // Método de pago
+            if (data['metodo_pago'] is Map) ...[
+              _filaDetalle(
+                (data['metodo_pago']['tipo'] == 'efectivo')
+                    ? Icons.payments_outlined
+                    : Icons.credit_card,
+                "Método de pago",
+                (data['metodo_pago']['etiqueta'] ?? '—').toString(),
+              ),
+              const SizedBox(height: 14),
+            ],
+
+            // Dirección de entrega
+            if (data['direccion_entrega'] is Map &&
+                (data['direccion_entrega']['calle'] ?? '').toString().isNotEmpty) ...[
+              _filaDetalle(
+                Icons.location_on_outlined,
+                "Entrega",
+                "${data['direccion_entrega']['calle']} ${data['direccion_entrega']['num_ext'] ?? ''}, ${data['direccion_entrega']['colonia'] ?? ''}",
+              ),
+              const SizedBox(height: 14),
+            ],
+
             // Precio
-            _filaDetalle(Icons.payments_outlined, "Total", "\$$precioTotal MXN"),
+            _filaDetalle(Icons.attach_money, "Total", "\$$precioTotal MXN"),
             const SizedBox(height: 20),
           ],
         ),
