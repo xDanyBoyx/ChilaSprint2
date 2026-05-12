@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'analytics_service.dart';
 
 class Autenticacion {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -47,6 +48,7 @@ class Autenticacion {
         'imagen_perfil': '', // El nuevo campo que agregaste preparado para usarse
       });
 
+      await AnalyticsService.logRegistro();
       return "exito";
     } on FirebaseAuthException catch (e) {
       return _manejarErrorFirebase(e.code);
@@ -79,7 +81,7 @@ class Autenticacion {
         print("Error leyendo el rol en Firestore: $e");
       }
 
-      // Regresamos el éxito y a dónde lo debe mandar la pantalla
+      await AnalyticsService.logLogin();
       return {
         "status": "exito",
         "puesto": puesto
