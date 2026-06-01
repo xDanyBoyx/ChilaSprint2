@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sprint2_chilaqueen/authentication.dart'; // Tu clase de lógica
 
@@ -58,7 +59,7 @@ class _RegistroState extends State<Registro> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Center(child: Image.asset("assets/LogoB_2.png", width: 90)),
+                Center(child: Image.asset("assets/LogoB.png", width: 90, fit: BoxFit.contain)),
                 const SizedBox(height: 20),
 
                 // Textos de Bienvenida
@@ -83,7 +84,16 @@ class _RegistroState extends State<Registro> {
                 // Formulario
                 _buildTextField("Nombre Completo", Icons.person_outline, _nombreController, TextInputType.name),
                 const SizedBox(height: 16),
-                _buildTextField("Número de Celular", Icons.phone_iphone, _celularController, TextInputType.phone),
+                _buildTextField(
+                  "Número de Celular",
+                  Icons.phone_iphone,
+                  _celularController,
+                  TextInputType.phone,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(10),
+                  ],
+                ),
                 const SizedBox(height: 16),
                 _buildTextField("Correo Electrónico", Icons.email_outlined, _emailController, TextInputType.emailAddress),
                 const SizedBox(height: 16),
@@ -103,7 +113,7 @@ class _RegistroState extends State<Registro> {
                         borderRadius: BorderRadius.circular(16),
                       ),
                       elevation: 5,
-                      shadowColor: colorFuente.withOpacity(0.3),
+                      shadowColor: colorFuente.withValues(alpha: 0.3),
                     ),
                     child: _estaCargando
                         ? const SizedBox(
@@ -161,6 +171,11 @@ class _RegistroState extends State<Registro> {
       return;
     }
 
+    if (_celularController.text.trim().length < 10) {
+      _mostrarMensaje("El teléfono debe tener exactamente 10 dígitos");
+      return;
+    }
+
     try {
       setState(() => _estaCargando = true);
 
@@ -187,10 +202,17 @@ class _RegistroState extends State<Registro> {
   }
 
   // Widget para campos de texto normales
-  Widget _buildTextField(String label, IconData icon, TextEditingController controller, TextInputType keyboardType) {
+  Widget _buildTextField(
+    String label,
+    IconData icon,
+    TextEditingController controller,
+    TextInputType keyboardType, {
+    List<TextInputFormatter>? inputFormatters,
+  }) {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         hintText: label,
@@ -202,7 +224,7 @@ class _RegistroState extends State<Registro> {
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,
         ),
-        contentPadding: const EdgeInsets.symmetric(vertical: 18), // Más altura para que se vea premium
+        contentPadding: const EdgeInsets.symmetric(vertical: 18),
       ),
     );
   }

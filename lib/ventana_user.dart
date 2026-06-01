@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -8,6 +9,8 @@ import 'package:sprint2_chilaqueen/login.dart';
 import 'package:sprint2_chilaqueen/perfil_screen.dart';
 import 'package:sprint2_chilaqueen/configuracion_screen.dart';
 import 'package:sprint2_chilaqueen/metodos_pago_screen.dart';
+import 'package:sprint2_chilaqueen/services/local_database_service.dart';
+import 'package:sprint2_chilaqueen/utils/menu_utils.dart';
 
 class MainU extends StatefulWidget {
   const MainU({super.key});
@@ -27,7 +30,7 @@ class _MainUState extends State<MainU> {
   // --- Variables de Estado ---
   int _indice = 0;
   String _busqueda = "";
-  String _categoriaSeleccionada = "🔥 Populares";
+  String _categoriaSeleccionada = "Chilaquiles";
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   // Conjunto de IDs de productos favoritos del usuario (en vivo)
@@ -38,6 +41,7 @@ class _MainUState extends State<MainU> {
   void initState() {
     super.initState();
     _suscribirFavoritos();
+    _seedProductos();
   }
 
   @override
@@ -65,6 +69,63 @@ class _MainUState extends State<MainU> {
       },
       cancelOnError: true,
     );
+  }
+
+  // Sincroniza el catálogo de productos con Firestore.
+  // Crea los que faltan y actualiza los existentes por nombre.
+  // Firebase es la fuente principal; este catálogo es el menú base del negocio.
+  Future<void> _seedProductos() async {
+    const List<Map<String, dynamic>> catalogo = [
+      // CHILAQUILES
+      {'nombre': 'Chilaquiles Rojos',    'categoria': 'chilaquiles',  'precio_base': 85,  'descripcion': 'Chilaquiles en salsa roja con crema y queso.',          'imagen_url': 'assets/ChilaquilesRojos.jpg',            'disponible': true},
+      {'nombre': 'Chilaquiles Verdes',   'categoria': 'chilaquiles',  'precio_base': 85,  'descripcion': 'Chilaquiles en salsa verde con crema y queso.',         'imagen_url': 'assets/ChilaquilesVerdes.jpg',           'disponible': true},
+      {'nombre': 'Chilaquiles Divorciados', 'categoria': 'chilaquiles', 'precio_base': 90, 'descripcion': 'Mitad roja, mitad verde. Lo mejor de ambas salsas.',   'imagen_url': 'assets/ChilaquilesDivorciados.jpg',      'disponible': true},
+      // TORTAS
+      {'nombre': 'Torta de Chilaquiles Rojos',       'categoria': 'tortas', 'precio_base': 95,  'descripcion': 'Telera crujiente rellena de chilaquiles en salsa roja.',   'imagen_url': 'assets/TortaChilaquilesRojos.jpg',       'disponible': true},
+      {'nombre': 'Torta de Chilaquiles Verdes',      'categoria': 'tortas', 'precio_base': 95,  'descripcion': 'Telera crujiente rellena de chilaquiles en salsa verde.',  'imagen_url': 'assets/TortaChilaquilesVerdes.jpg',      'disponible': true},
+      {'nombre': 'Torta de Chilaquiles Divorciados', 'categoria': 'tortas', 'precio_base': 100, 'descripcion': 'Telera con lo mejor de ambas salsas.',                     'imagen_url': 'assets/TortaChilaquilesDivorciados.jpg', 'disponible': true},
+      // ESPECIALIDADES
+      {'nombre': 'Molletes Queen', 'categoria': 'especialidades', 'precio_base': 90, 'descripcion': 'Molletes gratinados con frijoles y queso especial de la casa.', 'imagen_url': 'assets/MolletesQueen.jpg', 'disponible': true},
+      // BEBIDAS
+      {'nombre': 'Café Americano',  'categoria': 'bebidas', 'precio_base': 35, 'descripcion': 'Café negro preparado al momento.',                        'imagen_url': 'assets/CafeAmericano.jpg', 'disponible': true},
+      {'nombre': 'Café de Olla',    'categoria': 'bebidas', 'precio_base': 35, 'descripcion': 'Café tradicional mexicano con canela y piloncillo.',     'imagen_url': 'assets/CafeOlla.jpg',      'disponible': true},
+      {'nombre': 'Jugo de Naranja', 'categoria': 'bebidas', 'precio_base': 40, 'descripcion': 'Jugo natural de naranja recién exprimido.',              'imagen_url': 'assets/JugoNaranja.jpg',   'disponible': true},
+      {'nombre': 'Refresco',        'categoria': 'bebidas', 'precio_base': 25, 'descripcion': 'A elegir: Coca-Cola, Fanta o Sprite.',                  'imagen_url': 'assets/Refrescos.jpg',     'disponible': true},
+    ];
+
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection('productos')
+          .get();
+
+      // Construir mapa nombre → docId con los productos ya existentes
+      final Map<String, String> existentes = {};
+      for (final doc in snap.docs) {
+        final n = (doc.data()['nombre'] ?? '').toString().toLowerCase().trim();
+        if (n.isNotEmpty) existentes[n] = doc.id;
+      }
+
+      final col = FirebaseFirestore.instance.collection('productos');
+      final batch = FirebaseFirestore.instance.batch();
+
+      for (final p in catalogo) {
+        final clave = (p['nombre'] as String).toLowerCase().trim();
+        if (existentes.containsKey(clave)) {
+          // Actualizar campos del producto existente (no toca disponible si ya fue modificado)
+          batch.update(col.doc(existentes[clave]!), {
+            'categoria': p['categoria'],
+            'precio_base': p['precio_base'],
+            'descripcion': p['descripcion'],
+            'imagen_url': p['imagen_url'],
+          });
+        } else {
+          // Crear producto nuevo
+          batch.set(col.doc(), p);
+        }
+      }
+
+      await batch.commit();
+    } catch (_) {}
   }
 
   Future<void> _cerrarSesion() async {
@@ -118,7 +179,7 @@ class _MainUState extends State<MainU> {
       appBar: AppBar(
         backgroundColor: colorPrincipal,
         iconTheme: const IconThemeData(color: colorFuente),
-        title: Image.asset('assets/Logo_2.png', height: 40),
+        title: Image.asset('assets/Logo.png', height: 40, fit: BoxFit.contain),
         centerTitle: true,
         elevation: 0,
         scrolledUnderElevation: 0,
@@ -194,22 +255,21 @@ class _MainUState extends State<MainU> {
               return true;
             }).toList();
 
-            // 2) Construimos las categorías dinámicamente
-            final Set<String> categoriasSet = {};
-            for (final doc in visibles) {
-              final d = doc.data() as Map<String, dynamic>;
-              final cat = (d['categoria'] ?? '').toString().trim();
-              if (cat.isNotEmpty) categoriasSet.add(cat.toLowerCase());
-            }
-            final List<String> categorias = ["🔥 Populares", ...categoriasSet];
+            // 2) Categorías fijas en el orden del menú
+            const List<String> categorias = [
+              'Chilaquiles',
+              'Tortas',
+              'Bebidas',
+              'Especialidades',
+            ];
 
-            // 3) Aplicamos filtro por categoría seleccionada + búsqueda
+            // 3) Filtro por categoría seleccionada + búsqueda
             final platillos = visibles.where((doc) {
               final d = doc.data() as Map<String, dynamic>;
               final nombre = (d['nombre'] ?? '').toString().toLowerCase();
               final cat = (d['categoria'] ?? '').toString().toLowerCase().trim();
               final bool coincideBusqueda = nombre.contains(_busqueda);
-              final bool coincideCategoria = _categoriaSeleccionada == "🔥 Populares" ||
+              final bool coincideCategoria =
                   cat == _categoriaSeleccionada.toLowerCase();
               return coincideBusqueda && coincideCategoria;
             }).toList();
@@ -228,11 +288,7 @@ class _MainUState extends State<MainU> {
                   ),
                 ),
                 const SizedBox(height: 25),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text("Platillos", style: GoogleFonts.poppins(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
-                ),
-                const SizedBox(height: 15),
+                const SizedBox(height: 5),
 
                 if (platillos.isEmpty)
                   Padding(
@@ -360,6 +416,7 @@ class _MainUState extends State<MainU> {
     final String desc = d['descripcion'] ?? '';
     final String precio = (d['precio_base'] ?? d['precio'] ?? '0').toString();
     final String url = d['imagen_url'] ?? '';
+    final String categoria = (d['categoria'] ?? '').toString();
     final bool isFavorite = _favoritos.contains(productoId);
 
     return Container(
@@ -370,9 +427,12 @@ class _MainUState extends State<MainU> {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(15),
-            child: url.startsWith('http')
-                ? Image.network(url, width: 90, height: 90, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _errorImagen())
-                : _errorImagen(),
+            child: url.startsWith('assets/')
+                ? Image.asset(url, width: 90, height: 90, fit: BoxFit.cover)
+                : url.startsWith('http')
+                    ? Image.network(url, width: 90, height: 90, fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _errorImagen())
+                    : _errorImagen(),
           ),
           const SizedBox(width: 15),
           Expanded(
@@ -393,7 +453,7 @@ class _MainUState extends State<MainU> {
                 icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border, color: colorFuente, size: 22),
               ),
               IconButton(
-                onPressed: () => _mostrarOpcionesPlatillo(context, productoId, nombre, precio, url),
+                onPressed: () => _mostrarOpcionesPlatillo(context, productoId, nombre, precio, url, categoria),
                 style: IconButton.styleFrom(backgroundColor: colorPrincipal),
                 icon: const Icon(Icons.add, color: colorFuente, size: 20),
               ),
@@ -1145,6 +1205,8 @@ class _MainUState extends State<MainU> {
 
     try {
       await batch.commit();
+      // Limpiar el carrito local de SQLite al confirmar el pedido
+      try { await LocalDatabaseService().clearUserCart(uid); } catch (_) {}
       if (!mounted) return false;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -1407,12 +1469,21 @@ class _MainUState extends State<MainU> {
 
   // ==================== MODAL DE PERSONALIZACIÓN ====================
 
-  void _mostrarOpcionesPlatillo(BuildContext context, String productoId, String nombre, String precio, String imagen) {
-    // Extras disponibles. Si quieres más adelante los puedes leer de Firestore.
-    final List<Map<String, dynamic>> extrasDisponibles = [
-      {'nombre': 'Pollo', 'precio': 25},
-      {'nombre': 'Huevo', 'precio': 15},
-    ];
+  void _mostrarOpcionesPlatillo(BuildContext context, String productoId, String nombre, String precio, String imagen, String categoria) {
+    final bool conToppings = productoTieneToppings(nombre);
+    final bool esBebida = categoria.toLowerCase() == 'bebidas' || categoria.toLowerCase() == 'bebida';
+    final bool esRefresco = nombre.toLowerCase().trim() == 'refresco';
+    final List<Map<String, dynamic>> extrasDisponibles = conToppings
+        ? [
+            {'nombre': 'Pollo',       'precio': 20},
+            {'nombre': 'Huevo',       'precio': 15},
+            {'nombre': 'Arrachera',   'precio': 45},
+            {'nombre': 'Chorizo',     'precio': 25},
+            {'nombre': 'Aguacate',    'precio': 15},
+            {'nombre': 'Queso extra', 'precio': 10},
+            {'nombre': 'Crema extra', 'precio': 8},
+          ]
+        : [];
 
     final double precioBase = double.tryParse(precio) ?? 0;
 
@@ -1424,6 +1495,7 @@ class _MainUState extends State<MainU> {
         final Set<int> extrasSeleccionados = {};
         int cantidad = 1;
         final TextEditingController notaCtrl = TextEditingController();
+        String varianteRefresco = '';
 
         return StatefulBuilder(builder: (ctxModal, setModalState) {
           double totalExtras = 0;
@@ -1440,9 +1512,12 @@ class _MainUState extends State<MainU> {
               children: [
                 ClipRRect(
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-                  child: imagen.startsWith('http')
-                      ? Image.network(imagen, height: 180, width: double.infinity, fit: BoxFit.cover)
-                      : Container(height: 180, color: colorInput),
+                  child: imagen.startsWith('assets/')
+                      ? Image.asset(imagen, height: 180, width: double.infinity, fit: BoxFit.cover)
+                      : imagen.startsWith('http')
+                          ? Image.network(imagen, height: 180, width: double.infinity, fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(height: 180, color: colorInput))
+                          : Container(height: 180, color: colorInput),
                 ),
                 Expanded(
                   child: ListView(
@@ -1450,41 +1525,61 @@ class _MainUState extends State<MainU> {
                     children: [
                       Text(nombre, style: GoogleFonts.playfairDisplay(color: colorFuente, fontSize: 24, fontWeight: FontWeight.bold)),
                       Text("\$$precio MXN", style: const TextStyle(color: Colors.white, fontSize: 18)),
-                      const Divider(color: colorInput, height: 40),
-                      Text("Personaliza tu orden", style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 8),
-                      ...extrasDisponibles.asMap().entries.map((e) {
-                        final i = e.key;
-                        final extra = e.value;
-                        return CheckboxListTile(
-                          title: Text("Extra ${extra['nombre']} (+\$${extra['precio']})", style: const TextStyle(color: Colors.white)),
-                          value: extrasSeleccionados.contains(i),
-                          activeColor: colorFuente,
-                          contentPadding: EdgeInsets.zero,
-                          onChanged: (v) => setModalState(() {
-                            if (v == true) {
-                              extrasSeleccionados.add(i);
-                            } else {
-                              extrasSeleccionados.remove(i);
-                            }
-                          }),
-                        );
-                      }),
-                      const SizedBox(height: 10),
-                      Text("Notas especiales", style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: notaCtrl,
-                        maxLines: 2,
-                        style: const TextStyle(color: Colors.white, fontSize: 14),
-                        decoration: InputDecoration(
-                          hintText: "Ej. sin cebolla, salsa aparte...",
-                          hintStyle: const TextStyle(color: colorGrisTexto, fontSize: 13),
-                          filled: true,
-                          fillColor: colorInput,
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+                      if (extrasDisponibles.isNotEmpty) ...[
+                        const Divider(color: colorInput, height: 40),
+                        Text("Toppings", style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 8),
+                        ...extrasDisponibles.asMap().entries.map((e) {
+                          final i = e.key;
+                          final extra = e.value;
+                          return CheckboxListTile(
+                            title: Text("${extra['nombre']} (+\$${extra['precio']})", style: const TextStyle(color: Colors.white)),
+                            value: extrasSeleccionados.contains(i),
+                            activeColor: colorFuente,
+                            contentPadding: EdgeInsets.zero,
+                            onChanged: (v) => setModalState(() {
+                              if (v == true) {
+                                extrasSeleccionados.add(i);
+                              } else {
+                                extrasSeleccionados.remove(i);
+                              }
+                            }),
+                          );
+                        }),
+                      ],
+                      if (esRefresco) ...[
+                        const Divider(color: colorInput, height: 40),
+                        Text("Variante", style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: ['Coca-Cola', 'Fanta', 'Sprite'].map((v) => ChoiceChip(
+                            label: Text(v, style: TextStyle(color: varianteRefresco == v ? colorPrincipal : Colors.white)),
+                            selected: varianteRefresco == v,
+                            selectedColor: colorFuente,
+                            backgroundColor: colorInput,
+                            onSelected: (_) => setModalState(() => varianteRefresco = v),
+                          )).toList(),
                         ),
-                      ),
+                      ],
+                      if (!esBebida) ...[
+                        const SizedBox(height: 10),
+                        Text("Notas especiales", style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: notaCtrl,
+                          maxLines: 2,
+                          style: const TextStyle(color: Colors.white, fontSize: 14),
+                          decoration: InputDecoration(
+                            hintText: "Ej. sin cebolla, salsa aparte...",
+                            hintStyle: const TextStyle(color: colorGrisTexto, fontSize: 13),
+                            filled: true,
+                            fillColor: colorInput,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 20),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1529,28 +1624,93 @@ class _MainUState extends State<MainU> {
                                 })
                             .toList();
 
-                        await FirebaseFirestore.instance
-                            .collection('usuarios')
-                            .doc(uid)
-                            .collection('carrito')
-                            .add({
-                          'producto_id': productoId,
-                          'nombre': nombre,
-                          'imagen_url': imagen,
-                          'precio_base': precioBase,
-                          'extras': extras,
-                          'precio_unitario': precioUnitario,
-                          'cantidad': cantidad,
-                          'precio_total': total,
-                          'nota': notaCtrl.text.trim(),
-                          'agregado_en': FieldValue.serverTimestamp(),
-                        });
+                        // Nota: variante para Refresco, vacío para otras bebidas, texto libre para el resto
+                        final String notaFinal = esRefresco
+                            ? varianteRefresco
+                            : (esBebida ? '' : notaCtrl.text.trim());
 
+                        // 1. Guardar primero en SQLite con syncStatus = 0 (pendiente)
+                        final localId = 'local_${DateTime.now().millisecondsSinceEpoch}';
+                        bool savedLocally = false;
+                        try {
+                          await LocalDatabaseService().insertCartItem({
+                            'id': localId,
+                            'userId': uid,
+                            'productId': productoId,
+                            'name': nombre,
+                            'quantity': cantidad,
+                            'price': precioUnitario,
+                            'extras': jsonEncode(extras),
+                            'note': notaFinal,
+                            'createdAt': DateTime.now().toIso8601String(),
+                            'syncStatus': 0,
+                          });
+                          savedLocally = true;
+                          debugPrint('SQLite: guardado local');
+                        } catch (_) {}
+
+                        // 2. Cerrar el modal inmediatamente sin esperar a Firebase
                         if (!ctxModal.mounted) return;
                         Navigator.pop(ctxModal);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("$nombre agregado al carrito 🛒"), backgroundColor: Colors.green),
-                        );
+
+                        // 3. Intentar Firebase en background con timeout de 8 s
+                        unawaited(() async {
+                          try {
+                            final cartRef = await FirebaseFirestore.instance
+                                .collection('usuarios')
+                                .doc(uid)
+                                .collection('carrito')
+                                .add({
+                              'producto_id': productoId,
+                              'nombre': nombre,
+                              'imagen_url': imagen,
+                              'precio_base': precioBase,
+                              'extras': extras,
+                              'precio_unitario': precioUnitario,
+                              'cantidad': cantidad,
+                              'precio_total': total,
+                              'nota': notaFinal,
+                              'agregado_en': FieldValue.serverTimestamp(),
+                            }).timeout(const Duration(seconds: 8));
+
+                            debugPrint('Firebase: guardado online');
+                            // Actualizar SQLite: reemplazar registro local por el de Firebase (syncStatus = 1)
+                            if (savedLocally) {
+                              try {
+                                await LocalDatabaseService().deleteCartItem(localId);
+                                await LocalDatabaseService().insertCartItem({
+                                  'id': cartRef.id,
+                                  'userId': uid,
+                                  'productId': productoId,
+                                  'name': nombre,
+                                  'quantity': cantidad,
+                                  'price': precioUnitario,
+                                  'extras': jsonEncode(extras),
+                                  'note': notaFinal,
+                                  'createdAt': DateTime.now().toIso8601String(),
+                                  'syncStatus': 1,
+                                });
+                              } catch (_) {}
+                            }
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text("$nombre agregado al carrito 🛒"), backgroundColor: Colors.green),
+                              );
+                            }
+                          } catch (_) {
+                            // Firebase falló por falta de internet: dejar pendiente en SQLite
+                            debugPrint('Firebase offline: queda pendiente');
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("Producto guardado localmente. Se sincronizará cuando haya internet."),
+                                  backgroundColor: Colors.orange,
+                                  duration: Duration(seconds: 4),
+                                ),
+                              );
+                            }
+                          }
+                        }());
                       },
                       style: ElevatedButton.styleFrom(backgroundColor: colorFuente),
                       child: Text(
@@ -1620,7 +1780,7 @@ class _MainUState extends State<MainU> {
                               return Container(
                                 margin: const EdgeInsets.only(bottom: 10),
                                 decoration: BoxDecoration(
-                                  color: esPredeterminada ? colorFuente.withOpacity(0.1) : colorInput,
+                                  color: esPredeterminada ? colorFuente.withValues(alpha: 0.1) : colorInput,
                                   borderRadius: BorderRadius.circular(15),
                                   border: esPredeterminada ? Border.all(color: colorFuente, width: 1.5) : null,
                                 ),
@@ -1745,7 +1905,7 @@ class _MainUState extends State<MainU> {
                           SwitchListTile(
                             title: Text("Marcar como predeterminada", style: GoogleFonts.poppins(color: Colors.white, fontSize: 13)),
                             value: predeterminada,
-                            activeColor: colorFuente,
+                            activeThumbColor: colorFuente,
                             contentPadding: EdgeInsets.zero,
                             onChanged: (val) => setStateDialog(() => predeterminada = val),
                           ),
@@ -1775,6 +1935,7 @@ class _MainUState extends State<MainU> {
 
                         setStateDialog(() => guardando = true);
 
+                        final messenger = ScaffoldMessenger.of(context);
                         String? uid = _auth.currentUser?.uid;
                         if (uid != null) {
                           // Si esta será la predeterminada, podríamos necesitar apagar las otras (opcional, por ahora solo guardamos)
@@ -1793,8 +1954,9 @@ class _MainUState extends State<MainU> {
                           });
                         }
 
+                        if (!context.mounted) return;
                         Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        messenger.showSnackBar(
                           const SnackBar(content: Text("Dirección guardada con éxito 📍"), backgroundColor: Colors.green),
                         );
                       },

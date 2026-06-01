@@ -51,7 +51,7 @@ class _ChilaqueenState extends State<Chilaqueen> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 // Logo
-                Image.asset("assets/Logo_2.png", width: 250),
+                Image.asset("assets/Logo.png", width: 250, fit: BoxFit.contain),
                 const SizedBox(height: 30),
 
                 // Título
@@ -82,7 +82,7 @@ class _ChilaqueenState extends State<Chilaqueen> {
                     borderRadius: BorderRadius.circular(24), // Bordes súper redondeados
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
+                        color: Colors.black.withValues(alpha: 0.3),
                         blurRadius: 15,
                         offset: const Offset(0, 8),
                       ),
@@ -109,7 +109,7 @@ class _ChilaqueenState extends State<Chilaqueen> {
                         keyboardType: TextInputType.emailAddress,
                         decoration: InputDecoration(
                           hintText: "ejemplo@correo.com",
-                          hintStyle: TextStyle(color: colorGrisTexto.withOpacity(0.6)),
+                          hintStyle: TextStyle(color: colorGrisTexto.withValues(alpha: 0.6)),
                           filled: true,
                           fillColor: colorInput, // Fondo del input diferente al de la tarjeta
                           prefixIcon: const Icon(Icons.email_outlined, color: colorFuente, size: 20),
@@ -143,7 +143,7 @@ class _ChilaqueenState extends State<Chilaqueen> {
                         style: const TextStyle(color: Colors.white),
                         decoration: InputDecoration(
                           hintText: "Tu contraseña",
-                          hintStyle: TextStyle(color: colorGrisTexto.withOpacity(0.6)),
+                          hintStyle: TextStyle(color: colorGrisTexto.withValues(alpha: 0.6)),
                           filled: true,
                           fillColor: colorInput,
                           prefixIcon: const Icon(Icons.lock_outline, color: colorFuente, size: 20),
@@ -217,12 +217,14 @@ class _ChilaqueenState extends State<Chilaqueen> {
                             }
 
                             setState(() => _estaCargando = true);
+                            final nav = Navigator.of(context);
 
                             var resultado = await _authService.iniciarSesion(
                                 userController.text,
                                 passController.text
                             );
 
+                            if (!mounted) return;
                             setState(() => _estaCargando = false);
 
                             if (resultado["status"] == "exito") {
@@ -230,11 +232,11 @@ class _ChilaqueenState extends State<Chilaqueen> {
 
                               switch (puesto) {
                                 case "cliente":
-                                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MainU()));
+                                  nav.pushReplacement(MaterialPageRoute(builder: (_) => const MainU()));
                                   break;
                                 case "empleado":
                                 case "admin":
-                                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MainE()));
+                                  nav.pushReplacement(MaterialPageRoute(builder: (_) => const MainE()));
                                   break;
                                 default:
                                   _mostrarMensaje("Rol desconocido");

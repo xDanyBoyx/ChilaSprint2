@@ -66,7 +66,7 @@ class _MainEState extends State<MainE> {
       appBar: AppBar(
         backgroundColor: colorPrincipal,
         iconTheme: const IconThemeData(color: colorFuente),
-        title: Image.asset('assets/LogoB_2.png', height: 40),
+        title: Image.asset('assets/LogoB.png', height: 40, fit: BoxFit.contain),
         centerTitle: true,
         elevation: 0,
         scrolledUnderElevation: 0,
@@ -76,7 +76,7 @@ class _MainEState extends State<MainE> {
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           border: const Border(top: BorderSide(color: colorInput, width: 1)),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 10, offset: const Offset(0, -5))],
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 10, offset: const Offset(0, -5))],
         ),
         child: BottomNavigationBar(
           currentIndex: _indice,
@@ -157,7 +157,7 @@ class _MainEState extends State<MainE> {
           ListTile(
             leading: Container(
               padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: colorRojoAlerta.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+              decoration: BoxDecoration(color: colorRojoAlerta.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
               child: const Icon(Icons.logout, color: colorRojoAlerta, size: 20),
             ),
             title: Text("Cerrar Sesión", style: GoogleFonts.poppins(color: colorRojoAlerta, fontWeight: FontWeight.w600, fontSize: 15)),
@@ -496,7 +496,10 @@ class _MainEState extends State<MainE> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("Resumen del Día", style: GoogleFonts.playfairDisplay(color: colorFuente, fontSize: 28, fontWeight: FontWeight.bold)),
+                Flexible(
+                  child: Text("Resumen del Día", style: GoogleFonts.playfairDisplay(color: colorFuente, fontSize: 26, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
+                ),
+                const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(color: colorInput, borderRadius: BorderRadius.circular(20)),
@@ -518,9 +521,13 @@ class _MainEState extends State<MainE> {
                 children: [
                   Text("INGRESOS TOTALES", style: GoogleFonts.poppins(color: colorGrisTexto, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 2)),
                   const SizedBox(height: 8),
-                  Text(
-                    "\$${ingresos.toStringAsFixed(2)}",
-                    style: GoogleFonts.poppins(color: colorVerdeExito, fontSize: 40, fontWeight: FontWeight.bold),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.center,
+                    child: Text(
+                      "\$${ingresos.toStringAsFixed(2)}",
+                      style: GoogleFonts.poppins(color: colorVerdeExito, fontSize: 40, fontWeight: FontWeight.bold),
+                    ),
                   ),
                   if (totalPedidos == 0) ...[
                     const SizedBox(height: 8),
@@ -637,7 +644,28 @@ class _MainEState extends State<MainE> {
       },
     );
   }
-  Widget _tarjetaMetrica({required IconData icono, required String titulo, required String valor, required Color colorIcono}) { return Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: colorTarjeta, borderRadius: BorderRadius.circular(16)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Icon(icono, color: colorIcono, size: 18), const SizedBox(width: 8), Text(titulo, style: GoogleFonts.poppins(color: colorGrisTexto, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1))]), const SizedBox(height: 12), Text(valor, style: GoogleFonts.poppins(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold))])); }
+  Widget _tarjetaMetrica({required IconData icono, required String titulo, required String valor, required Color colorIcono}) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: colorTarjeta, borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Icon(icono, color: colorIcono, size: 16),
+            const SizedBox(width: 6),
+            Flexible(child: Text(titulo, style: GoogleFonts.poppins(color: colorGrisTexto, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.5), overflow: TextOverflow.ellipsis)),
+          ]),
+          const SizedBox(height: 8),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(valor, style: GoogleFonts.poppins(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
   Widget _barraVentas({required String platillo, required int ventas, required double porcentaje, int rank = 0, int totalVentas = 0}) {
     const medallas = ['🥇', '🥈', '🥉'];
     final medallaStr = rank >= 1 && rank <= 3 ? medallas[rank - 1] : '$rank.';
@@ -659,7 +687,7 @@ class _MainEState extends State<MainE> {
             children: [
               Text(medallaStr, style: TextStyle(fontSize: rank <= 3 ? 16 : 13, color: barColor)),
               const SizedBox(width: 8),
-              Expanded(child: Text(platillo, style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500))),
+              Expanded(child: Text(platillo, style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis)),
               Text("$ventas ord.", style: GoogleFonts.poppins(color: colorGrisTexto, fontSize: 12)),
               const SizedBox(width: 8),
               Text("$pct%", style: GoogleFonts.poppins(color: barColor, fontSize: 12, fontWeight: FontWeight.bold)),
@@ -797,11 +825,14 @@ class _MainEState extends State<MainE> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text("#$id", style: GoogleFonts.poppins(color: colorFuente, fontWeight: FontWeight.bold, fontSize: 16)),
-                Row(children: [
-                  const Icon(Icons.calendar_today, color: colorGrisTexto, size: 14),
-                  const SizedBox(width: 4),
-                  Text("$fecha • $hora", style: GoogleFonts.poppins(color: colorGrisTexto, fontSize: 12)),
-                ]),
+                Flexible(
+                  child: Row(children: [
+                    const SizedBox(width: 8),
+                    const Icon(Icons.calendar_today, color: colorGrisTexto, size: 14),
+                    const SizedBox(width: 4),
+                    Flexible(child: Text("$fecha • $hora", style: GoogleFonts.poppins(color: colorGrisTexto, fontSize: 12), overflow: TextOverflow.ellipsis)),
+                  ]),
+                ),
               ],
             ),
           ),
@@ -895,7 +926,7 @@ class _MainEState extends State<MainE> {
                           children: [
                             Icon(Icons.timer_outlined, color: tiempoEstimado != "Sin asignar" ? colorFuente : colorGrisTexto, size: 16),
                             const SizedBox(width: 4),
-                            Text(tiempoEstimado, style: GoogleFonts.poppins(color: tiempoEstimado != "Sin asignar" ? colorFuente : colorGrisTexto, fontSize: 12, fontWeight: FontWeight.bold)),
+                            Flexible(child: Text(tiempoEstimado, style: GoogleFonts.poppins(color: tiempoEstimado != "Sin asignar" ? colorFuente : colorGrisTexto, fontSize: 12, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis)),
                           ],
                         ),
                       ),
