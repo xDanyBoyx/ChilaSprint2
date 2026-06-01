@@ -95,4 +95,10 @@ class LocalDatabaseService {
       whereArgs: [userId],
     );
   }
+
+  // Solo para pruebas: cierra la BD y resetea el singleton para aislar cada test.
+  Future<void> closeForTesting() async {
+    await _db?.close();
+    _db = null;
+  }
 }
